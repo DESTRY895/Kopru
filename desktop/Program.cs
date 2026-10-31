@@ -32,6 +32,7 @@ sealed class MainForm : Form
     readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(2) };
     readonly System.Windows.Forms.Timer health = new() { Interval = 4000 };
     CancellationTokenSource? search;
+    CloudProxy? cloud;
     string? connected;
     int misses;
 
@@ -62,6 +63,13 @@ sealed class MainForm : Form
             var msg = e.TryGetWebMessageAsString();
             if (msg == "retry") _ = Search();
             else if (msg.StartsWith("manual:")) _ = TryManual(msg[7..].Trim());
+            else if (msg == "cloud") _ = OpenCloud(null);
+            else if (msg == "cloudforget") { CloudProxy.Forget(); _ = Search(); }
+            else if (msg.StartsWith("cloudset:"))
+            {
+                var parts = msg[9..].Split('|', 2);
+                _ = OpenCloud((parts[0].Trim().Length > 0 ? parts[0].Trim() : CloudProxy.DefaultRepo, parts.Length > 1 ? parts[1].Trim() : ""));
+            }
         };
         // Yeni sekme açmak isteyen bağlantılar (önizleme) varsayılan tarayıcıda açılsın.
         core.NewWindowRequested += (_, e) =>
@@ -76,6 +84,7 @@ sealed class MainForm : Form
     async Task Search()
     {
         search?.Cancel();
+        cloud?.Stop(); cloud = null;
         var cts = search = new CancellationTokenSource();
         health.Stop();
         connected = null;
@@ -92,7 +101,11 @@ sealed class MainForm : Form
             if (found != null) { Connect(found.Value.addr, found.Value.model); return; }
             attempt++;
             if (attempt == 3)
-                web.CoreWebView2.NavigateToString(SearchPage("Bulunamadı. Telefonda Köprü açık mı, ikisi aynı Wi‑Fi'da mı? Aramaya devam ediyorum…"));
+            {
+                // Aynı ağda değiliz: depo ayarlıysa kendiliğinden ona geç.
+                if (CloudProxy.Load() != null) { await OpenCloud(null); return; }
+                web.CoreWebView2.NavigateToString(SearchPage("Aynı ağda telefon bulunamadı. Farklı ağlardaysanız aşağıdan GitHub deposuyla bağlan."));
+            }
             try { await Task.Delay(1500, cts.Token); } catch (TaskCanceledException) { return; }
         }
     }
@@ -103,6 +116,21 @@ sealed class MainForm : Form
         if (!addr.Contains(':')) addr += ":" + HttpPort;
         if (await Alive(addr)) { search?.Cancel(); Connect(addr, null); }
         else web.CoreWebView2.NavigateToString(SearchPage($"{addr} adresine ulaşılamadı."));
+    }
+
+    /// Farklı ağlar: GitHub deposunu yerel sunucuyla aç. [set] verilirse önce kaydet.
+    async Task OpenCloud((string repo, string token)? set)
+    {
+        var cfg = set ?? CloudProxy.Load();
+        if (cfg == null) { web.CoreWebView2.NavigateToString(SearchPage("Önce GitHub token'ını gir.")); return; }
+        search?.Cancel(); health.Stop(); connected = null;
+        Text = "Köprü — GitHub deposuna bağlanılıyor";
+        var (proxy, error) = await CloudProxy.Open(cfg.Value.repo, cfg.Value.token);
+        if (proxy == null) { web.CoreWebView2.NavigateToString(SearchPage(error ?? "Bağlanılamadı")); Text = "Köprü"; return; }
+        if (set != null) CloudProxy.Save(cfg.Value.repo, cfg.Value.token);
+        cloud = proxy;
+        Text = "Köprü — internet üzerinden (" + cfg.Value.repo + ")";
+        web.CoreWebView2.Navigate(proxy.Url);
     }
 
     void Connect(string addr, string? model)
@@ -170,6 +198,22 @@ sealed class MainForm : Form
         }
     }
 
+    static string CloudBlock() => CloudProxy.Load() is { } c
+        ? $$"""
+          <p>Farklı ağlardaysanız dosyalar GitHub deposundan ({{WebUtility.HtmlEncode(c.repo)}}) geçer.</p>
+          <button onclick="chrome.webview.postMessage('cloud')">İnternet üzerinden bağlan</button>
+          <button class="link" onclick="chrome.webview.postMessage('cloudforget')">Token'ı unut</button>
+          """
+        : $$"""
+          <p><b>Farklı ağlarda mısınız?</b> GitHub deposu üzerinden paylaş. <a href="https://github.com/settings/personal-access-tokens/new" target="_blank">Token oluştur</a>
+          (Only select → Kopru-depo, Contents → Read and write).</p>
+          <form onsubmit="chrome.webview.postMessage('cloudset:'+document.getElementById('r').value+'|'+document.getElementById('k').value);return false">
+            <input id="r" value="{{CloudProxy.DefaultRepo}}" aria-label="Depo">
+            <input id="k" type="password" placeholder="github_pat_…" aria-label="Token">
+            <button>Kaydet ve bağlan</button>
+          </form>
+          """;
+
     static string SearchPage(string note) => $$$"""
         <!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
           body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#111317;color:#ECEDEE;font-family:"Segoe UI",system-ui,sans-serif}
@@ -184,6 +228,11 @@ sealed class MainForm : Form
           @keyframes r{from{transform:scale(.3);opacity:1}to{transform:scale(1);opacity:0}}
           form{display:flex;gap:8px;margin-top:8px}
           input{height:42px;border-radius:11px;border:1px solid #3A3F48;background:#1A1D23;color:#ECEDEE;padding:0 14px;font:inherit;width:220px}
+          .cloud{margin-top:18px;padding-top:18px;border-top:1px solid #3A3F48;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+          .cloud form{flex-direction:column;width:100%;max-width:340px}
+          .cloud input{width:auto}
+          .cloud a{color:#F2B33D}
+          .link{background:none;color:#A0A6B0;font-weight:400;height:auto;padding:4px}
           button{height:42px;border-radius:11px;border:0;background:#F2B33D;color:#111317;font:inherit;font-weight:600;padding:0 18px;cursor:pointer}
         </style></head><body><div class="box">
           <div class="radar"><i></i><i></i><i></i><b></b></div>
@@ -194,6 +243,9 @@ sealed class MainForm : Form
           <form onsubmit="chrome.webview.postMessage('manual:'+document.getElementById('a').value);return false">
             <input id="a" placeholder="192.168.1.24:8080" aria-label="Telefon adresi"><button>Bağlan</button>
           </form>
+          <div class="cloud">
+            {{{CloudBlock()}}}
+          </div>
         </div></body></html>
         """;
 }

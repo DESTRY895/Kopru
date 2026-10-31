@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Hub.init(this)
+        Cloud.init(this)
         ServerService.start(this)
         handleShare(intent)
         setContent { App() }
@@ -96,7 +99,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Tab(val label: String) { All("Tümü"), In("Gelen"), Out("Giden"), Notes("Notlar") }
+private enum class Tab(val label: String) { All("Tümü"), In("Gelen"), Out("Giden"), Notes("Notlar"), Cloud("İnternet") }
 
 @Composable
 private fun App() {
@@ -151,7 +154,9 @@ private fun App() {
             item { Tabs(tab, items, notes) { tab = it } }
             item { SearchBox(query) { query = it } }
 
-            if (tab == Tab.Notes) {
+            if (tab == Tab.Cloud) {
+                item(key = "cloud") { CloudPanel(query) }
+            } else if (tab == Tab.Notes) {
                 item { NoteComposer() }
                 if (shownNotes.isEmpty()) item { Empty("Not yok. Buraya yazdığın metin bilgisayarda görünür; bilgisayardan yazılan da buraya düşer.") }
                 items(shownNotes, key = { "n" + it.id }) { NoteCard(it) }
@@ -319,6 +324,7 @@ private fun Tabs(selected: Tab, items: List<Item>, notes: List<Note>, onPick: (T
             val count = when (t) {
                 Tab.All -> items.size; Tab.In -> items.count { it.incoming }
                 Tab.Out -> items.count { !it.incoming }; Tab.Notes -> notes.size
+                Tab.Cloud -> Cloud.files.value.size
             }
             val on = t == selected
             Column(
@@ -427,6 +433,125 @@ private fun NoteCard(note: Note) {
         }
     }
 }
+
+// ── İnternet (GitHub deposu) ──────────────────────────────────
+
+@Composable
+private fun CloudPanel(query: String) {
+    val configured by Cloud.configured.collectAsStateWithLifecycle()
+    if (!configured) { CloudSetup(); return }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val files by Cloud.files.collectAsStateWithLifecycle()
+    val notes by Cloud.notes.collectAsStateWithLifecycle()
+    val error by Cloud.error.collectAsStateWithLifecycle()
+    var busy by remember { mutableStateOf(0) }
+    fun run(block: suspend () -> Unit) { scope.launch { busy++; try { block() } finally { busy-- } } }
+    LaunchedEffect(Unit) { while (true) { Cloud.refresh(); delay(8000) } }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        run { uris.forEach { Cloud.upload(it) }; if (uris.isNotEmpty() && Cloud.error.value == null) toast(context, "Depoya yüklendi") }
+    }
+    var noteText by rememberSaveable { mutableStateOf("") }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Farklı ağlardayken dosyalar GitHub deposu üzerinden geçer (${Cloud.repo}). Aynı Wi‑Fi'dayken doğrudan aktarım daha hızlıdır.",
+            color = Muted, fontSize = 12.sp)
+        error?.let { Text(it, color = Bad, fontSize = 13.sp) }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = { picker.launch(arrayOf("*/*")) },
+                modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Ground),
+            ) { Text("Depoya yükle", fontWeight = FontWeight.SemiBold) }
+            OutlinedButton(
+                onClick = { run { Cloud.refresh() } },
+                modifier = Modifier.height(50.dp), shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Line),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink),
+            ) { Text(if (busy > 0) "…" else "Yenile") }
+        }
+        val shown = files.filter { query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) }
+        if (shown.isEmpty()) Empty("Depoda dosya yok. Bilgisayardaki Köprü telefonu bulamayınca bu depoyu açar; oradan yüklenenler burada görünür.")
+        shown.forEach { f ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Surface).padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                val (kind, kindColor) = kindOf(f.name)
+                Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(kindColor.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+                    Text(kind, color = kindColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(f.name, color = Ink, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text((if (f.fromPc) "bilgisayardan · " else "telefondan · ") + dayLabel(f.time) + " " + clock(f.time) + " · " + formatSize(f.size),
+                        color = if (f.fromPc) Good else Blue, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                TextButton(onClick = { run { Cloud.download(f); if (Cloud.error.value == null) toast(context, "İndirilenler/${Hub.FOLDER} klasörüne kaydedildi") } }) { Text("İndir", color = Accent, fontSize = 13.sp) }
+                TextButton(onClick = { run { Cloud.delete(f) } }) { Text("Sil", color = Muted, fontSize = 13.sp) }
+            }
+        }
+
+        Text("Depo notları", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Surface).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                if (noteText.isEmpty()) Text("Metin, link… gönder", color = Muted, fontSize = 14.sp)
+                BasicTextField(noteText, { noteText = it }, textStyle = TextStyle(color = Ink, fontSize = 14.sp), cursorBrush = SolidColor(Accent), modifier = Modifier.fillMaxWidth())
+            }
+            TextButton(onClick = { val t = noteText; noteText = ""; run { Cloud.addNote(t) } }, enabled = noteText.isNotBlank()) { Text("Gönder", color = Accent) }
+        }
+        notes.forEach { n ->
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Surface).padding(14.dp)) {
+                Text(n.text, color = Ink, fontSize = 14.sp, maxLines = 8, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text((if (n.fromPc) "Bilgisayardan · " else "Telefondan · ") + dayLabel(n.time) + " " + clock(n.time),
+                        color = if (n.fromPc) Good else Blue, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { copy(context, n.text); toast(context, "Kopyalandı") }) { Text("Kopyala", color = Accent, fontSize = 13.sp) }
+                    TextButton(onClick = { run { Cloud.removeNote(n.id) } }) { Text("Sil", color = Muted, fontSize = 13.sp) }
+                }
+            }
+        }
+        TextButton(onClick = { Cloud.forget() }, modifier = Modifier.fillMaxWidth()) { Text("Token'ı unut", color = Muted, fontSize = 13.sp) }
+    }
+}
+
+@Composable
+private fun CloudSetup() {
+    val context = LocalContext.current
+    var repo by rememberSaveable { mutableStateOf(Cloud.repo) }
+    var token by rememberSaveable { mutableStateOf("") }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Surface).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text("İnternet üzerinden paylaşım", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text("Telefon ve bilgisayar farklı ağlardayken dosyalar gizli GitHub deponda buluşur. Bir kez GitHub token'ı yapıştırman yeter; token yalnızca bu telefonda saklanır.",
+            color = Muted, fontSize = 13.sp)
+        Text("Token oluştur →", color = Accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable {
+                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/settings/personal-access-tokens/new")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }.padding(4.dp))
+        Text("Repository access: Only select → Kopru-depo · Permissions: Contents → Read and write", color = Muted, fontSize = 12.sp)
+        Field(repo, "kullanıcı/depo") { repo = it }
+        Field(token, "github_pat_…") { token = it }
+        Button(
+            onClick = { Cloud.configure(repo, token) }, enabled = token.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Ground),
+        ) { Text("Kaydet", fontWeight = FontWeight.SemiBold) }
+    }
+}
+
+@Composable
+private fun Field(value: String, hint: String, onChange: (String) -> Unit) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Chip).padding(horizontal = 12.dp, vertical = 12.dp)) {
+        if (value.isEmpty()) Text(hint, color = Muted, fontSize = 14.sp)
+        BasicTextField(value, onChange, singleLine = true, textStyle = TextStyle(color = Ink, fontSize = 14.sp), cursorBrush = SolidColor(Accent), modifier = Modifier.fillMaxWidth())
+    }
+}
+
 
 // ── Yardımcılar ───────────────────────────────────────────────
 

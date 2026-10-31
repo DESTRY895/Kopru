@@ -138,7 +138,13 @@ object Hub {
     }
 
     /** Kopyalar; ilerlemeyi ~5 kez/sn yayınlar. [length]<0 → akış sonuna kadar. */
-    private fun pump(input: InputStream, out: OutputStream, length: Long, start: Transfer) {
+    /** Bir aktarımı başlatır, [block] bitince listeden kaldırır (bulut yüklemeleri için). */
+    fun track(name: String, size: Long, incoming: Boolean, block: (Transfer) -> Unit) {
+        val t = Transfer(newId(), name, size, 0, incoming, System.currentTimeMillis())
+        try { block(t) } finally { _transfers.update { it - t.id } }
+    }
+
+    fun pump(input: InputStream, out: OutputStream, length: Long, start: Transfer) {
         _transfers.update { it + (start.id to start) }
         val buf = ByteArray(256 * 1024)
         var done = 0L
