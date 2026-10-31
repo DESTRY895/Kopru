@@ -1,0 +1,33 @@
+name: APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: APK derle
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-configuration-cache
+          cp app/build/outputs/apk/release/app-release.apk Kopru.apk
+      # Her derleme yeni bir sürüm olur; telefondan hep aynı adresten en yenisi iner:
+      # https://github.com/<kullanıcı>/<depo>/releases/latest/download/Kopru.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.${{ github.run_number }}
+          name: Köprü 1.${{ github.run_number }}
+          files: Kopru.apk
+          make_latest: true

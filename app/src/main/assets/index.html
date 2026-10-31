@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Köprü</title>
+<style>
+  :root { --ground:#111317; --surface:#1A1D23; --chip:#262A32; --line:#3A3F48; --ink:#ECEDEE; --muted:#A0A6B0; --accent:#F2B33D; --good:#8EE6A8; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family: system-ui, "Segoe UI", Inter, sans-serif; }
+  main { max-width:960px; margin:0 auto; padding:40px 16px; display:flex; flex-direction:column; gap:28px; }
+  header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  h1 { margin:0; font-size:32px; letter-spacing:-.5px; }
+  h2 { margin:0; font-size:18px; font-weight:600; }
+  #status { font-size:14px; color:var(--good); }
+  #status.off { color:#FF8A7A; }
+  #drop { border:2px dashed var(--line); border-radius:18px; padding:56px 24px; display:flex; flex-direction:column; align-items:center; gap:12px; background:#16191E; cursor:pointer; text-align:center; }
+  #drop.over { border-color:var(--accent); background:#1E1B14; }
+  #drop .big { font-size:22px; font-weight:500; }
+  #drop .small { font-size:14px; color:var(--muted); }
+  .btn { height:44px; padding:0 22px; border-radius:12px; background:var(--accent); color:var(--ground); font-weight:600; display:inline-flex; align-items:center; border:0; font-size:15px; }
+  .list { display:flex; flex-direction:column; gap:10px; }
+  .row { display:flex; align-items:center; gap:14px; background:var(--surface); border-radius:12px; padding:14px 16px; flex-wrap:wrap; }
+  .ext { width:40px; height:40px; border-radius:10px; background:var(--chip); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--muted); }
+  .info { flex:1 1 200px; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .name { font-size:15px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .meta { font-size:13px; color:var(--muted); }
+  .meta.in { color:var(--good); }
+  a.dl { height:40px; padding:0 16px; border-radius:10px; border:1px solid var(--line); display:flex; align-items:center; text-decoration:none; color:var(--ink); font-size:14px; font-weight:500; }
+  a.dl:hover { border-color:var(--accent); color:var(--accent); }
+  .bar { height:6px; border-radius:3px; background:var(--chip); flex-basis:100%; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:var(--accent); transition:width .15s; }
+  .empty { color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Köprü</h1>
+    <span id="status">● Telefona bağlı</span>
+  </header>
+
+  <label id="drop" for="pick">
+    <span class="big">Dosyaları buraya bırak</span>
+    <span class="small">ya da seçmek için tıkla — telefona gider (İndirilenler/Köprü)</span>
+    <input id="pick" type="file" multiple hidden>
+    <span class="btn">Dosya seç</span>
+  </label>
+
+  <section class="list" id="uploads" aria-live="polite"></section>
+
+  <section class="list">
+    <h2>Telefondaki dosyalar</h2>
+    <div class="list" id="files"><p class="empty">Yükleniyor…</p></div>
+  </section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const fmt = (b) => b < 0 ? '?' : b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(0) + ' KB'
+  : b < 1073741824 ? (b/1048576).toFixed(1) + ' MB' : (b/1073741824).toFixed(2) + ' GB';
+const ext = (n) => (n.includes('.') ? n.split('.').pop() : '').slice(0, 4).toUpperCase();
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let last = '';
+async function refresh() {
+  try {
+    const r = await fetch('/api/list', { cache: 'no-store' });
+    const list = await r.json();
+    $('#status').textContent = '● Telefona bağlı'; $('#status').className = '';
+    const key = JSON.stringify(list);
+    if (key === last) return;
+    last = key;
+    $('#files').innerHTML = list.length ? list.map((f) => `
+      <div class="row">
+        <span class="ext">${esc(ext(f.name))}</span>
+        <div class="info"><span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
+          <span class="meta ${f.in ? 'in' : ''}">${f.in ? '↑ bilgisayardan geldi' : '↓ telefondan paylaşıldı'} · ${fmt(f.size)}</span></div>
+        <a class="dl" href="/dl/${encodeURIComponent(f.id)}" download>İndir</a>
+      </div>`).join('') : '<p class="empty">Telefonda paylaşılan dosya yok. Telefonda “Bilgisayara dosya gönder”e dokun.</p>';
+  } catch (e) {
+    $('#status').textContent = '● Telefon bağlantısı yok'; $('#status').className = 'off';
+  }
+}
+
+// Sırayla yükle: aynı anda tek akış telefonu yormaz.
+let queue = Promise.resolve();
+function upload(files) {
+  for (const file of files) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<span class="ext">${esc(ext(file.name))}</span>
+      <div class="info"><span class="name">${esc(file.name)}</span><span class="meta">Sırada · ${fmt(file.size)}</span></div>
+      <div class="bar"><i></i></div>`;
+    $('#uploads').prepend(row);
+    const meta = row.querySelector('.meta'), bar = row.querySelector('.bar > i');
+    queue = queue.then(() => new Promise((done) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', '/up?name=' + encodeURIComponent(file.name));
+      xhr.upload.onprogress = (e) => {
+        const p = e.lengthComputable ? e.loaded / e.total : 0;
+        bar.style.width = (p * 100).toFixed(1) + '%';
+        meta.textContent = `Gönderiliyor %${(p * 100).toFixed(0)} · ${fmt(file.size)}`;
+      };
+      xhr.onload = () => {
+        const ok = xhr.status === 200;
+        meta.textContent = ok ? `✓ Telefona gönderildi · ${fmt(file.size)}` : 'Hata: ' + xhr.status;
+        meta.className = 'meta ' + (ok ? 'in' : '');
+        bar.style.width = '100%';
+        refresh(); done();
+      };
+      xhr.onerror = () => { meta.textContent = 'Bağlantı hatası'; done(); };
+      xhr.send(file);
+    }));
+  }
+}
+
+$('#pick').addEventListener('change', (e) => { upload(e.target.files); e.target.value = ''; });
+const drop = $('#drop');
+['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+// Bırakma tüm sayfada çalışır (alanın 'drop' olayı da buraya kabarır).
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => { e.preventDefault(); upload(e.dataTransfer.files); });
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>
