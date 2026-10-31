@@ -218,15 +218,15 @@ sealed class MainForm : Form
         <!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
           body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0D0E10;color:#ECEDEE;font-family:"Segoe UI",system-ui,sans-serif}
           .box{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;max-width:440px;padding:24px}
-          h1{margin:0;font-size:34px}
+          h1{margin:0;font-size:26px;font-weight:600}
           p{margin:0;color:#A0A6B0;font-size:14px;line-height:1.5}
           .note{color:#4C8DFF}
-          .radar{width:120px;height:120px;position:relative}
+          .radar{width:96px;height:96px;position:relative}
           .radar i{position:absolute;inset:0;border:2px solid #4C8DFF;border-radius:50%;opacity:0;animation:r 2.4s ease-out infinite}
           .radar i:nth-child(2){animation-delay:.8s}.radar i:nth-child(3){animation-delay:1.6s}
-          .radar b{position:absolute;inset:44px;border-radius:50%;background:#4C8DFF}
+          .radar b{position:absolute;inset:34px;border-radius:50%;background:#4C8DFF}
           @keyframes r{from{transform:scale(.3);opacity:1}to{transform:scale(1);opacity:0}}
-          form{display:flex;gap:8px;margin-top:8px}
+          form{display:flex;gap:8px;margin-top:4px;width:100%}form input{flex:1}
           input{height:42px;border-radius:11px;border:1px solid #2C2F35;background:#151619;color:#ECEDEE;padding:0 14px;font:inherit;width:220px}
           .cloud{margin-top:18px;padding-top:18px;border-top:1px solid #2C2F35;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
           .cloud form{flex-direction:column;width:100%;max-width:340px}
@@ -236,12 +236,11 @@ sealed class MainForm : Form
           button{height:42px;border-radius:11px;border:0;background:#4C8DFF;color:#fff;font:inherit;font-weight:600;padding:0 18px;cursor:pointer}
         </style></head><body><div class="box">
           <div class="radar"><i></i><i></i><i></i><b></b></div>
-          <h1>Köprü</h1>
-          <p>Telefon aranıyor… Telefonda Köprü uygulamasını aç; iki cihaz aynı Wi‑Fi ağında olmalı.</p>
+          <h1>Telefon aranıyor…</h1>
+          <p>Telefonda Köprü’yü aç. Aynı Wi‑Fi’dayken kendiliğinden bağlanır; bulunamazsa internet deposuna geçer.</p>
           <p class="note">{{{WebUtility.HtmlEncode(note)}}}</p>
-          <p>Ya da telefondaki adresi yaz:</p>
-          <form onsubmit="chrome.webview.postMessage('manual:'+document.getElementById('a').value);return false">
-            <input id="a" placeholder="192.168.1.24:8080" aria-label="Telefon adresi"><button>Bağlan</button>
+                    <form onsubmit="chrome.webview.postMessage('manual:'+document.getElementById('a').value);return false">
+            <input id="a" placeholder="192.168.1.37:8080" aria-label="Telefon adresi"><button>Bağlan</button>
           </form>
           <div class="cloud">
             {{{CloudBlock()}}}

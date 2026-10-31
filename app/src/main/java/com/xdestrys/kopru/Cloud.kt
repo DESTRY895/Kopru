@@ -135,7 +135,7 @@ object Cloud {
             val loc = c.getHeaderField("Location"); c.disconnect()
             (URL(loc).openConnection() as HttpURLConnection).also { it.connectTimeout = 15000 }.inputStream
         } else c.inputStream
-        stream.use { Hub.receive(f.name, f.size, it) }
+        stream.use { Hub.receive(f.name, f.size, it, cloud = true) }
     }
 
     suspend fun delete(f: CloudFile) = io {

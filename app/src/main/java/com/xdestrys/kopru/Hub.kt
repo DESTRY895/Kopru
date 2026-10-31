@@ -27,6 +27,8 @@ data class Item(
     val incoming: Boolean,
     val time: Long,
     val downloads: Int = 0,
+    /** İnternet deposundan indirildi. */
+    val cloud: Boolean = false,
 )
 
 /** Metin notu (pano). [fromPc]=true → bilgisayardan yazıldı. */
@@ -40,6 +42,8 @@ data class Transfer(
     val done: Long,
     val incoming: Boolean,
     val startedAt: Long,
+    /** İnternet deposu üzerinden (Wi‑Fi değil). */
+    val cloud: Boolean = false,
 ) {
     val fraction get() = if (total > 0) (done.toFloat() / total).coerceIn(0f, 1f) else 0f
     /** bayt/sn */
@@ -97,7 +101,7 @@ object Hub {
     }
 
     /** Bilgisayardan gelen akışı İndirilenler/Köprü klasörüne yazar. */
-    fun receive(name: String, length: Long, input: InputStream): Item {
+    fun receive(name: String, length: Long, input: InputStream, cloud: Boolean = false): Item {
         val safe = name.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "dosya" }
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, safe)
@@ -110,7 +114,7 @@ object Hub {
         val tid = newId()
         try {
             resolver.openOutputStream(uri)!!.use { out ->
-                pump(input, out, length, Transfer(tid, safe, length, 0, incoming = true, startedAt = System.currentTimeMillis()))
+                pump(input, out, length, Transfer(tid, safe, length, 0, incoming = true, startedAt = System.currentTimeMillis(), cloud = cloud))
             }
             resolver.update(uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
         } catch (e: Throwable) {
@@ -120,7 +124,7 @@ object Hub {
             _transfers.update { it - tid }
         }
         val finalName = describe(uri)?.first ?: safe
-        val item = Item(newId(), finalName, uri.toString(), length, incoming = true, time = System.currentTimeMillis())
+        val item = Item(newId(), finalName, uri.toString(), length, incoming = true, time = System.currentTimeMillis(), cloud = cloud)
         updateItems { listOf(item) + it }
         return item
     }
@@ -140,7 +144,7 @@ object Hub {
     /** Kopyalar; ilerlemeyi ~5 kez/sn yayınlar. [length]<0 → akış sonuna kadar. */
     /** Bir aktarımı başlatır, [block] bitince listeden kaldırır (bulut yüklemeleri için). */
     fun track(name: String, size: Long, incoming: Boolean, block: (Transfer) -> Unit) {
-        val t = Transfer(newId(), name, size, 0, incoming, System.currentTimeMillis())
+        val t = Transfer(newId(), name, size, 0, incoming, System.currentTimeMillis(), cloud = true)
         try { block(t) } finally { _transfers.update { it - t.id } }
     }
 
@@ -226,7 +230,7 @@ object Hub {
         val arr = JSONArray()
         _items.value.forEach {
             arr.put(JSONObject().put("id", it.id).put("name", it.name).put("uri", it.uri)
-                .put("size", it.size).put("in", it.incoming).put("t", it.time).put("dl", it.downloads))
+                .put("size", it.size).put("in", it.incoming).put("t", it.time).put("dl", it.downloads).put("c", it.cloud))
         }
         itemsFile.writeText(arr.toString())
     }
@@ -246,7 +250,7 @@ object Hub {
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
             Item(o.getString("id"), o.getString("name"), o.getString("uri"), o.getLong("size"),
-                o.getBoolean("in"), o.getLong("t"), o.optInt("dl"))
+                o.getBoolean("in"), o.getLong("t"), o.optInt("dl"), o.optBoolean("c"))
         }
     }.getOrDefault(emptyList())
 

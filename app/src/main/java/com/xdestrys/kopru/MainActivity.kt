@@ -285,7 +285,7 @@ private fun TransferCard(t: Transfer) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(if (t.incoming) "↓ Bilgisayardan geliyor" else "↑ Bilgisayara gidiyor", color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text((if (t.incoming) "↓ Bilgisayardan geliyor" else "↑ Bilgisayara gidiyor") + if (t.cloud) " · internet" else " · Wi‑Fi", color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             Text("%${(t.fraction * 100).toInt()}", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
         Text(t.name, color = Ink, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -352,7 +352,7 @@ private fun FileRow(item: Item) {
             Text(item.name, color = Ink, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(if (item.incoming) "↓ gelen" else "↑ giden", color = if (item.incoming) Good else Blue, fontSize = 12.sp)
-                Text("${clock(item.time)} · ${formatSize(item.size)}" + (if (item.downloads > 0) " · ${item.downloads}× indirildi" else ""),
+                Text("${clock(item.time)} · ${formatSize(item.size)}" + (if (item.downloads > 0) " · ${item.downloads}× indirildi" else "") + (if (item.cloud) " · internet" else ""),
                     color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
