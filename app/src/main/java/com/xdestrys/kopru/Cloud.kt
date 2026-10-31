@@ -4,7 +4,11 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Base64
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
@@ -43,9 +47,35 @@ object Cloud {
     private val token get() = prefs.getString("token", "")!!.ifBlank { BuildConfig.KOPRU_TOKEN }
     private var releaseId: Long? = null
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var syncing = false
+
     fun init(context: Context) {
         app = context.applicationContext
         _configured.value = token.isNotBlank()
+        if (syncing) return
+        syncing = true
+        scope.launch { while (true) { if (_configured.value) runCatching { sync() }; delay(10_000) } }
+    }
+
+    // ── Otomatik eşitleme ────────────────────────────────────
+
+    /** Telefondan gönderilenleri depoya da yükler (farklı ağdaki bilgisayar görsün). */
+    fun push(uris: List<Uri>) { if (_configured.value) scope.launch { uris.forEach { upload(it) } } }
+
+    fun pushNote(text: String) { if (_configured.value && text.isNotBlank()) scope.launch { addNote(text) } }
+
+    /** Bilgisayardan depoya gelen yeni dosyaları indirir, yeni notları telefona alır. */
+    private suspend fun sync() {
+        refresh() ?: return
+        val seen = prefs.getStringSet("seen", emptySet())!!.toMutableSet()
+        for (f in _files.value.filter { it.fromPc && "f${it.id}" !in seen }.sortedBy { it.time }) {
+            if (download(f) != null) { seen += "f${f.id}"; prefs.edit().putStringSet("seen", seen.toSet()).apply() }
+        }
+        for (n in _notes.value.filter { it.fromPc && "n${it.id}" !in seen }) {
+            Hub.importNote(n); seen += "n${n.id}"
+        }
+        prefs.edit().putStringSet("seen", seen.toSet()).apply()
     }
 
     fun configure(repo: String, token: String) {

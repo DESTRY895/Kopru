@@ -192,6 +192,9 @@ object Hub {
         return note
     }
 
+    /** Depodan gelen notu (aynı kimlikle) ekler. */
+    fun importNote(n: Note) { if (_notes.value.none { it.id == n.id }) updateNotes { (listOf(n) + it).sortedByDescending { x -> x.time } } }
+
     fun removeNote(id: String) = updateNotes { list -> list.filterNot { it.id == id } }
 
     // ── Ağ ───────────────────────────────────────────────────

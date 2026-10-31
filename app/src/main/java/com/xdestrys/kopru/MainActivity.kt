@@ -94,8 +94,8 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_SEND_MULTIPLE -> intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM).orEmpty()
             else -> emptyList()
         }
-        if (uris.isNotEmpty()) Hub.share(uris)
-        else if (intent?.action == Intent.ACTION_SEND) intent.getStringExtra(Intent.EXTRA_TEXT)?.let { Hub.addNote(it, fromPc = false) }
+        if (uris.isNotEmpty()) { Hub.share(uris); Cloud.push(uris) }
+        else if (intent?.action == Intent.ACTION_SEND) intent.getStringExtra(Intent.EXTRA_TEXT)?.let { Hub.addNote(it, fromPc = false); Cloud.pushNote(it) }
     }
 }
 
@@ -116,8 +116,8 @@ private fun App() {
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= 33) notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { Hub.share(it) }
-    val media = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(50)) { Hub.share(it) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { Hub.share(it); Cloud.push(it) }
+    val media = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(50)) { Hub.share(it); Cloud.push(it) }
 
     val shown = items
         .filter { when (tab) { Tab.In -> it.incoming; Tab.Out -> !it.incoming; else -> true } }
@@ -408,7 +408,7 @@ private fun NoteComposer() {
                 cursorBrush = SolidColor(Accent), modifier = Modifier.fillMaxWidth())
         }
         Button(
-            onClick = { Hub.addNote(text, fromPc = false); text = "" },
+            onClick = { Hub.addNote(text, fromPc = false); Cloud.pushNote(text); text = "" },
             enabled = text.isNotBlank(),
             modifier = Modifier.align(Alignment.End).height(44.dp),
             shape = RoundedCornerShape(12.dp),
