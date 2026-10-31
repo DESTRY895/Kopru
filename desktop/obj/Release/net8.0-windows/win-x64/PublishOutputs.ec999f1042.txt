@@ -1,5 +1,0 @@
-C:\Users\enes\AppData\Local\Temp\claude\C--Users-enes-Desktop-PROJELER-android-auto--claude-worktrees-two-share-d5f165\b2cb40e6-206e-41e9-932d-5b060a72a777\scratchpad\exe\Kopru.pdb
-C:\Users\enes\AppData\Local\Temp\claude\C--Users-enes-Desktop-PROJELER-android-auto--claude-worktrees-two-share-d5f165\b2cb40e6-206e-41e9-932d-5b060a72a777\scratchpad\exe\Microsoft.Web.WebView2.Core.xml
-C:\Users\enes\AppData\Local\Temp\claude\C--Users-enes-Desktop-PROJELER-android-auto--claude-worktrees-two-share-d5f165\b2cb40e6-206e-41e9-932d-5b060a72a777\scratchpad\exe\Microsoft.Web.WebView2.WinForms.xml
-C:\Users\enes\AppData\Local\Temp\claude\C--Users-enes-Desktop-PROJELER-android-auto--claude-worktrees-two-share-d5f165\b2cb40e6-206e-41e9-932d-5b060a72a777\scratchpad\exe\Microsoft.Web.WebView2.Wpf.xml
-C:\Users\enes\AppData\Local\Temp\claude\C--Users-enes-Desktop-PROJELER-android-auto--claude-worktrees-two-share-d5f165\b2cb40e6-206e-41e9-932d-5b060a72a777\scratchpad\exe\Kopru.exe
