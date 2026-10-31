@@ -19,6 +19,8 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
       - name: APK derle
+        env:
+          KOPRU_TOKEN: ${{ secrets.KOPRU_TOKEN }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-configuration-cache
@@ -36,7 +38,12 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: EXE derle
-        run: dotnet publish desktop/Kopru.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out
+        shell: bash
+        env:
+          KOPRU_TOKEN: ${{ secrets.KOPRU_TOKEN }}
+        run: |
+          printf %s "$KOPRU_TOKEN" > desktop/token.txt
+          dotnet publish desktop/Kopru.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out
       - uses: actions/upload-artifact@v4
         with:
           name: exe

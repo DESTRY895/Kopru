@@ -6,3 +6,4 @@ local.properties
 .kotlin/
 desktop/bin/
 desktop/obj/
+desktop/token.txt

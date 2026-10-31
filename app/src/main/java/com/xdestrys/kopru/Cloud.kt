@@ -40,7 +40,7 @@ object Cloud {
     val configured: StateFlow<Boolean> = _configured
 
     val repo get() = prefs.getString("repo", DEFAULT_REPO)!!
-    private val token get() = prefs.getString("token", "")!!
+    private val token get() = prefs.getString("token", "")!!.ifBlank { BuildConfig.KOPRU_TOKEN }
     private var releaseId: Long? = null
 
     fun init(context: Context) {
@@ -54,7 +54,7 @@ object Cloud {
         _configured.value = token.isNotBlank()
     }
 
-    fun forget() = configure(repo, "")
+    fun forget() { configure(repo, ""); _configured.value = BuildConfig.KOPRU_TOKEN.isNotBlank() }
 
     // ── Okuma ────────────────────────────────────────────────
 

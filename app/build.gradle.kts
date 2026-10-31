@@ -15,6 +15,8 @@ android {
         targetSdk = 36
         versionCode = buildNo
         versionName = "1.$buildNo"
+        // Derlemede Actions secret'ından gelir; kaynakta token yok.
+        buildConfigField("String", "KOPRU_TOKEN", "\"${System.getenv("KOPRU_TOKEN") ?: ""}\"")
     }
 
     // Sabit anahtar: CI'da her derleme aynı imzayı taşır, güncelleme veri silmeden kurulur.
@@ -41,7 +43,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
 }
 
 kotlin {

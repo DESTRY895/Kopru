@@ -45,7 +45,15 @@ sealed class CloudProxy
             var raw = Encoding.UTF8.GetString(ProtectedData.Unprotect(File.ReadAllBytes(ConfigFile), null, DataProtectionScope.CurrentUser)).Split('\n');
             return (raw[0], raw[1]);
         }
-        catch { return null; }
+        catch { return Builtin() is { } t ? (DefaultRepo, t) : null; }
+    }
+
+    /// Derlemede gömülen token (Actions secret'ı); kaynakta yok.
+    static string? Builtin()
+    {
+        using var s = typeof(CloudProxy).Assembly.GetManifestResourceStream("token.txt");
+        var t = s == null ? null : new StreamReader(s).ReadToEnd().Trim();
+        return string.IsNullOrEmpty(t) ? null : t;
     }
 
     public static void Save(string repo, string token) =>
