@@ -28,7 +28,7 @@ sealed class MainForm : Form
     static readonly string DataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Kopru");
     static readonly string LastFile = Path.Combine(DataDir, "son-adres.txt");
 
-    readonly WebView2 web = new() { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(17, 19, 23) };
+    readonly WebView2 web = new() { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(13, 14, 16) };
     readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(2) };
     readonly System.Windows.Forms.Timer health = new() { Interval = 4000 };
     CancellationTokenSource? search;
@@ -42,7 +42,7 @@ sealed class MainForm : Form
         Width = 1180; Height = 860;
         MinimumSize = new Size(420, 500);
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = Color.FromArgb(17, 19, 23);
+        BackColor = Color.FromArgb(13, 14, 16);
         using (var s = typeof(MainForm).Assembly.GetManifestResourceStream("Kopru.kopru.ico"))
             if (s != null) Icon = new Icon(s);
         Controls.Add(web);
@@ -216,24 +216,24 @@ sealed class MainForm : Form
 
     static string SearchPage(string note) => $$$"""
         <!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
-          body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#111317;color:#ECEDEE;font-family:"Segoe UI",system-ui,sans-serif}
+          body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0D0E10;color:#ECEDEE;font-family:"Segoe UI",system-ui,sans-serif}
           .box{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;max-width:440px;padding:24px}
           h1{margin:0;font-size:34px}
           p{margin:0;color:#A0A6B0;font-size:14px;line-height:1.5}
-          .note{color:#F2B33D}
+          .note{color:#4C8DFF}
           .radar{width:120px;height:120px;position:relative}
-          .radar i{position:absolute;inset:0;border:2px solid #F2B33D;border-radius:50%;opacity:0;animation:r 2.4s ease-out infinite}
+          .radar i{position:absolute;inset:0;border:2px solid #4C8DFF;border-radius:50%;opacity:0;animation:r 2.4s ease-out infinite}
           .radar i:nth-child(2){animation-delay:.8s}.radar i:nth-child(3){animation-delay:1.6s}
-          .radar b{position:absolute;inset:44px;border-radius:50%;background:#F2B33D}
+          .radar b{position:absolute;inset:44px;border-radius:50%;background:#4C8DFF}
           @keyframes r{from{transform:scale(.3);opacity:1}to{transform:scale(1);opacity:0}}
           form{display:flex;gap:8px;margin-top:8px}
-          input{height:42px;border-radius:11px;border:1px solid #3A3F48;background:#1A1D23;color:#ECEDEE;padding:0 14px;font:inherit;width:220px}
-          .cloud{margin-top:18px;padding-top:18px;border-top:1px solid #3A3F48;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+          input{height:42px;border-radius:11px;border:1px solid #2C2F35;background:#151619;color:#ECEDEE;padding:0 14px;font:inherit;width:220px}
+          .cloud{margin-top:18px;padding-top:18px;border-top:1px solid #2C2F35;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
           .cloud form{flex-direction:column;width:100%;max-width:340px}
           .cloud input{width:auto}
-          .cloud a{color:#F2B33D}
+          .cloud a{color:#4C8DFF}
           .link{background:none;color:#A0A6B0;font-weight:400;height:auto;padding:4px}
-          button{height:42px;border-radius:11px;border:0;background:#F2B33D;color:#111317;font:inherit;font-weight:600;padding:0 18px;cursor:pointer}
+          button{height:42px;border-radius:11px;border:0;background:#4C8DFF;color:#fff;font:inherit;font-weight:600;padding:0 18px;cursor:pointer}
         </style></head><body><div class="box">
           <div class="radar"><i></i><i></i><i></i><b></b></div>
           <h1>Köprü</h1>

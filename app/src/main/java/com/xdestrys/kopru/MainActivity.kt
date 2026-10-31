@@ -59,16 +59,16 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private val Ground = Color(0xFF111317)
-private val Surface = Color(0xFF1A1D23)
-private val Chip = Color(0xFF262A32)
-private val Line = Color(0xFF3A3F48)
-private val Ink = Color(0xFFECEDEE)
-private val Muted = Color(0xFFA0A6B0)
-private val Accent = Color(0xFFF2B33D)
-private val Good = Color(0xFF8EE6A8)
-private val Bad = Color(0xFFFF8A7A)
-private val Blue = Color(0xFF7AB8FF)
+private val Ground = Color(0xFF0D0E10)
+private val Surface = Color(0xFF151619)
+private val Chip = Color(0xFF23262B)
+private val Line = Color(0xFF2C2F35)
+private val Ink = Color(0xFFEDEEF0)
+private val Muted = Color(0xFF8A8F98)
+private val Accent = Color(0xFF4C8DFF)
+private val Good = Color(0xFF3FB97A)
+private val Bad = Color(0xFFE5534B)
+private val Blue = Color(0xFF4C8DFF)
 private val TR = Locale.forLanguageTag("tr-TR")
 
 class MainActivity : ComponentActivity() {
@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Tab(val label: String) { All("Tümü"), In("Gelen"), Out("Giden"), Notes("Notlar"), Cloud("İnternet") }
+private enum class Tab(val label: String) { All("Tümü"), In("Gelen"), Out("Giden"), Notes("Notlar") }
 
 @Composable
 private fun App() {
@@ -138,14 +138,14 @@ private fun App() {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 4.dp)) {
                     Button(
                         onClick = { picker.launch(arrayOf("*/*")) },
-                        modifier = Modifier.weight(1f).height(54.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Ground),
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color.White),
                     ) { Text("Dosya gönder", fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
                     OutlinedButton(
                         onClick = { media.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
-                        modifier = Modifier.weight(1f).height(54.dp),
-                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(10.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Line),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink),
                     ) { Text("Foto / Video", fontSize = 15.sp, fontWeight = FontWeight.Medium) }
@@ -154,9 +154,7 @@ private fun App() {
             item { Tabs(tab, items, notes) { tab = it } }
             item { SearchBox(query) { query = it } }
 
-            if (tab == Tab.Cloud) {
-                item(key = "cloud") { CloudPanel(query) }
-            } else if (tab == Tab.Notes) {
+            if (tab == Tab.Notes) {
                 item { NoteComposer() }
                 if (shownNotes.isEmpty()) item { Empty("Not yok. Buraya yazdığın metin bilgisayarda görünür; bilgisayardan yazılan da buraya düşer.") }
                 items(shownNotes, key = { "n" + it.id }) { NoteCard(it) }
@@ -194,12 +192,16 @@ private fun Header(address: String?) {
     val context = LocalContext.current
     val on = address != null
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("Köprü", color = Ink, fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            Text("Köprü", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+            val cloudOn by Cloud.configured.collectAsStateWithLifecycle()
+            Text(if (cloudOn) "Wi‑Fi + internet eşitleme" else "Yalnızca Wi‑Fi", color = Muted, fontSize = 12.sp)
+        }
         val pulse by rememberInfiniteTransition(label = "p").animateFloat(
             0.35f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "a",
         )
         Row(
-            Modifier.clip(RoundedCornerShape(20.dp)).background(Surface)
+            Modifier.clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp))
                 .clickable { if (on) ServerService.stop(context) else ServerService.start(context) }
                 .padding(horizontal = 14.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -214,9 +216,9 @@ private fun Header(address: String?) {
 @Composable
 private fun AddressCard(address: String?) {
     val context = LocalContext.current
-    var showQr by rememberSaveable { mutableStateOf(true) }
+    var showQr by rememberSaveable { mutableStateOf(false) }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Surface).animateContentSize().padding(18.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).animateContentSize().padding(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -224,9 +226,9 @@ private fun AddressCard(address: String?) {
             address == null -> Text("Sunucu kapalı — açmak için sağ üstteki düğmeye dokun", color = Muted, fontSize = 14.sp)
             address.isEmpty() -> Text("Wi‑Fi ağına bağlan (veya hotspot aç)", color = Muted, fontSize = 14.sp)
             else -> {
-                Text("Bilgisayarda Köprü uygulaması telefonu kendisi bulur — ya da tarayıcıya yaz:", color = Muted, fontSize = 12.sp)
+                Text("Wi‑Fi adresi · bilgisayardaki Köprü kendisi bulur", color = Muted, fontSize = 12.sp)
                 Text(
-                    address, color = Accent, fontSize = 26.sp, fontWeight = FontWeight.Bold,
+                    address, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable {
                         copy(context, "http://$address"); toast(context, "Adres kopyalandı")
                     }.padding(horizontal = 6.dp),
@@ -234,7 +236,7 @@ private fun AddressCard(address: String?) {
                 AnimatedVisibility(showQr) {
                     val qr = remember(address) { qrBitmap("http://$address") }
                     Image(qr.asImageBitmap(), contentDescription = "Adresin QR kodu",
-                        modifier = Modifier.size(150.dp).clip(RoundedCornerShape(12.dp)))
+                        modifier = Modifier.size(150.dp).clip(RoundedCornerShape(10.dp)))
                 }
                 Text(if (showQr) "QR'ı gizle" else "QR'ı göster", color = Muted, fontSize = 12.sp,
                     modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { showQr = !showQr }.padding(6.dp))
@@ -256,49 +258,30 @@ private fun Stats(items: List<Item>, notes: List<Note>) {
 
 @Composable
 private fun StatBox(label: String, value: String, sub: String, color: Color, modifier: Modifier) {
-    Column(modifier.clip(RoundedCornerShape(14.dp)).background(Surface).padding(horizontal = 14.dp, vertical = 12.dp)) {
+    Column(modifier.clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(horizontal = 14.dp, vertical = 12.dp)) {
         Text(label, color = Muted, fontSize = 12.sp)
-        Text(value, color = color, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Text(sub, color = Muted, fontSize = 11.sp)
     }
 }
 
-/** Akan çizgili, parlayan ilerleme çubuğu. */
+/** İnce ilerleme çubuğu. */
 @Composable
 private fun FancyBar(fraction: Float, color: Color, modifier: Modifier = Modifier) {
     val animated by animateFloatAsState(fraction, tween(250), label = "f")
-    val t = rememberInfiniteTransition(label = "s")
-    val shift by t.animateFloat(0f, 1f, infiniteRepeatable(tween(900, easing = LinearEasing)), label = "x")
-    val glow by t.animateFloat(-0.3f, 1.3f, infiniteRepeatable(tween(1600, easing = FastOutSlowInEasing)), label = "g")
-    Canvas(modifier.fillMaxWidth().height(10.dp)) {
+    Canvas(modifier.fillMaxWidth().height(4.dp)) {
         val r = CornerRadius(size.height / 2)
         drawRoundRect(Chip, cornerRadius = r)
-        val w = size.width * animated
-        if (w <= 0f) return@Canvas
-        drawRoundRect(color, size = Size(w, size.height), cornerRadius = r)
-        // Çapraz şeritler
-        val stripe = 14.dp.toPx()
-        clipRect(right = w, bottom = size.height) {
-            var x = -stripe * 2 + shift * stripe * 2
-            while (x < w) {
-                drawLine(Color.White.copy(alpha = 0.18f), Offset(x, size.height), Offset(x + size.height, 0f), strokeWidth = stripe / 2)
-                x += stripe
-            }
-            // Gezen parıltı
-            val gx = glow * w
-            drawRect(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.35f), Color.Transparent), gx - 60f, gx + 60f),
-                size = Size(w, size.height))
-        }
+        drawRoundRect(color, size = Size(size.width * animated, size.height), cornerRadius = r)
     }
 }
-
 
 @Composable
 private fun TransferCard(t: Transfer) {
     val color = if (t.incoming) Good else Blue
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Surface)
-            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(14.dp)).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp))
+            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(10.dp)).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -317,23 +300,22 @@ private fun TransferCard(t: Transfer) {
 @Composable
 private fun Tabs(selected: Tab, items: List<Item>, notes: List<Note>, onPick: (Tab) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(12.dp)).background(Surface).padding(4.dp),
+        Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Tab.entries.forEach { t ->
             val count = when (t) {
                 Tab.All -> items.size; Tab.In -> items.count { it.incoming }
                 Tab.Out -> items.count { !it.incoming }; Tab.Notes -> notes.size
-                Tab.Cloud -> Cloud.files.value.size
             }
             val on = t == selected
-            Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(9.dp)).background(if (on) Chip else Color.Transparent)
-                    .clickable { onPick(t) }.padding(vertical = 9.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Row(
+                Modifier.weight(1f).clip(RoundedCornerShape(7.dp)).background(if (on) Chip else Color.Transparent)
+                    .clickable { onPick(t) }.padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(t.label, color = if (on) Ink else Muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal)
-                Text("$count", color = if (on) Accent else Muted, fontSize = 11.sp)
+                Text(t.label, color = if (on) Ink else Muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.Medium else FontWeight.Normal)
+                Text("  $count", color = Muted, fontSize = 12.sp)
             }
         }
     }
@@ -341,7 +323,7 @@ private fun Tabs(selected: Tab, items: List<Item>, notes: List<Note>, onPick: (T
 
 @Composable
 private fun SearchBox(value: String, onChange: (String) -> Unit) {
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Surface).padding(horizontal = 14.dp, vertical = 13.dp)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(horizontal = 14.dp, vertical = 13.dp)) {
         if (value.isEmpty()) Text("Ara…", color = Muted, fontSize = 14.sp)
         BasicTextField(value, onChange, singleLine = true, textStyle = TextStyle(color = Ink, fontSize = 14.sp),
             cursorBrush = SolidColor(Accent), modifier = Modifier.fillMaxWidth())
@@ -358,7 +340,7 @@ private fun FileRow(item: Item) {
     var confirmDelete by remember { mutableStateOf(false) }
     val (kind, kindColor) = kindOf(item.name)
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Surface)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp))
             .clickable { openFile(context, item) }.padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -399,7 +381,7 @@ private fun FileRow(item: Item) {
 private fun NoteComposer() {
     var text by rememberSaveable { mutableStateOf("") }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Surface).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(Modifier.fillMaxWidth().heightIn(min = 60.dp)) {
@@ -411,8 +393,8 @@ private fun NoteComposer() {
             onClick = { Hub.addNote(text, fromPc = false); Cloud.pushNote(text); text = "" },
             enabled = text.isNotBlank(),
             modifier = Modifier.align(Alignment.End).height(44.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Ground),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color.White),
         ) { Text("Gönder", fontWeight = FontWeight.SemiBold) }
     }
 }
@@ -421,7 +403,7 @@ private fun NoteComposer() {
 private fun NoteCard(note: Note) {
     val context = LocalContext.current
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Surface).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(note.text, color = Ink, fontSize = 14.sp, maxLines = 8, overflow = TextOverflow.Ellipsis)
@@ -460,12 +442,12 @@ private fun CloudPanel(query: String) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
                 onClick = { picker.launch(arrayOf("*/*")) },
-                modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Ground),
+                modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color.White),
             ) { Text("Depoya yükle", fontWeight = FontWeight.SemiBold) }
             OutlinedButton(
                 onClick = { run { Cloud.refresh() } },
-                modifier = Modifier.height(50.dp), shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.height(50.dp), shape = RoundedCornerShape(10.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, Line),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink),
             ) { Text(if (busy > 0) "…" else "Yenile") }
@@ -474,7 +456,7 @@ private fun CloudPanel(query: String) {
         if (shown.isEmpty()) Empty("Depoda dosya yok. Bilgisayardaki Köprü telefonu bulamayınca bu depoyu açar; oradan yüklenenler burada görünür.")
         shown.forEach { f ->
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Surface).padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 val (kind, kindColor) = kindOf(f.name)
@@ -493,7 +475,7 @@ private fun CloudPanel(query: String) {
 
         Text("Depo notları", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Surface).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.weight(1f)) {
@@ -503,7 +485,7 @@ private fun CloudPanel(query: String) {
             TextButton(onClick = { val t = noteText; noteText = ""; run { Cloud.addNote(t) } }, enabled = noteText.isNotBlank()) { Text("Gönder", color = Accent) }
         }
         notes.forEach { n ->
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Surface).padding(14.dp)) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(14.dp)) {
                 Text(n.text, color = Ink, fontSize = 14.sp, maxLines = 8, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text((if (n.fromPc) "Bilgisayardan · " else "Telefondan · ") + dayLabel(n.time) + " " + clock(n.time),
@@ -523,7 +505,7 @@ private fun CloudSetup() {
     var repo by rememberSaveable { mutableStateOf(Cloud.repo) }
     var token by rememberSaveable { mutableStateOf("") }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Surface).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Surface).border(1.dp, Line, RoundedCornerShape(10.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("İnternet üzerinden paylaşım", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
@@ -538,8 +520,8 @@ private fun CloudSetup() {
         Field(token, "github_pat_…") { token = it }
         Button(
             onClick = { Cloud.configure(repo, token) }, enabled = token.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Ground),
+            modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color.White),
         ) { Text("Kaydet", fontWeight = FontWeight.SemiBold) }
     }
 }
