@@ -1,4 +1,4 @@
-name: APK
+name: Derle
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  apk:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,11 +23,39 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-configuration-cache
           cp app/build/outputs/apk/release/app-release.apk Kopru.apk
-      # Her derleme yeni bir sürüm olur; telefondan hep aynı adresten en yenisi iner:
-      # https://github.com/<kullanıcı>/<depo>/releases/latest/download/Kopru.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: Kopru.apk
+
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: EXE derle
+        run: dotnet publish desktop/Kopru.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exe
+          path: out/Kopru.exe
+
+  # Her derleme yeni bir sürüm olur; hep aynı adresten en yenisi iner:
+  # https://github.com/<kullanıcı>/<depo>/releases/latest/download/Kopru.apk  (ve Kopru.exe)
+  release:
+    needs: [apk, exe]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.${{ github.run_number }}
           name: Köprü 1.${{ github.run_number }}
-          files: Kopru.apk
+          files: |
+            Kopru.apk
+            Kopru.exe
           make_latest: true

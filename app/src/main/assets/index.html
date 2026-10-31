@@ -5,125 +5,354 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Köprü</title>
 <style>
-  :root { --ground:#111317; --surface:#1A1D23; --chip:#262A32; --line:#3A3F48; --ink:#ECEDEE; --muted:#A0A6B0; --accent:#F2B33D; --good:#8EE6A8; }
+  :root { --ground:#111317; --surface:#1A1D23; --chip:#262A32; --line:#3A3F48; --ink:#ECEDEE; --muted:#A0A6B0;
+          --accent:#F2B33D; --good:#8EE6A8; --blue:#7AB8FF; --bad:#FF8A7A; }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--ground); color:var(--ink); font-family: system-ui, "Segoe UI", Inter, sans-serif; }
-  main { max-width:960px; margin:0 auto; padding:40px 16px; display:flex; flex-direction:column; gap:28px; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family: "Segoe UI", system-ui, Inter, sans-serif; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  main { max-width:1040px; margin:0 auto; padding:32px 16px 64px; display:flex; flex-direction:column; gap:22px; }
   header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
   h1 { margin:0; font-size:32px; letter-spacing:-.5px; }
-  h2 { margin:0; font-size:18px; font-weight:600; }
-  #status { font-size:14px; color:var(--good); }
-  #status.off { color:#FF8A7A; }
-  #drop { border:2px dashed var(--line); border-radius:18px; padding:56px 24px; display:flex; flex-direction:column; align-items:center; gap:12px; background:#16191E; cursor:pointer; text-align:center; }
-  #drop.over { border-color:var(--accent); background:#1E1B14; }
-  #drop .big { font-size:22px; font-weight:500; }
-  #drop .small { font-size:14px; color:var(--muted); }
-  .btn { height:44px; padding:0 22px; border-radius:12px; background:var(--accent); color:var(--ground); font-weight:600; display:inline-flex; align-items:center; border:0; font-size:15px; }
-  .list { display:flex; flex-direction:column; gap:10px; }
-  .row { display:flex; align-items:center; gap:14px; background:var(--surface); border-radius:12px; padding:14px 16px; flex-wrap:wrap; }
-  .ext { width:40px; height:40px; border-radius:10px; background:var(--chip); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--muted); }
-  .info { flex:1 1 200px; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  h2 { margin:0; font-size:17px; font-weight:600; }
+  .pill { display:flex; align-items:center; gap:8px; background:var(--surface); padding:8px 14px; border-radius:20px; font-size:14px; color:var(--good); }
+  .pill i { width:8px; height:8px; border-radius:50%; background:currentColor; animation: pulse 1.8s ease-in-out infinite; }
+  .pill.off { color:var(--bad); } .pill.off i { animation:none; }
+  @keyframes pulse { 50% { opacity:.3; } }
+
+  .stats { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+  .stat { background:var(--surface); border-radius:14px; padding:12px 16px; }
+  .stat small { color:var(--muted); font-size:12px; display:block; }
+  .stat b { font-size:22px; display:block; }
+  .stat span { color:var(--muted); font-size:12px; }
+  @media (max-width:640px) { .stats { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+
+  .cols { display:flex; flex-wrap:wrap; gap:22px; align-items:flex-start; }
+  .cols > .left { flex: 999 1 560px; min-width:0; display:flex; flex-direction:column; gap:14px; }
+  .cols > .right { flex: 1 1 300px; min-width:0; display:flex; flex-direction:column; gap:12px; }
+
+  #drop { border:2px dashed var(--line); border-radius:18px; padding:40px 24px; display:flex; flex-direction:column; align-items:center; gap:10px; background:#16191E; cursor:pointer; text-align:center; transition: border-color .15s, background .15s, transform .15s; }
+  #drop.over { border-color:var(--accent); background:#1E1B14; transform:scale(1.01); }
+  #drop .big { font-size:21px; font-weight:500; }
+  #drop .small { font-size:13px; color:var(--muted); }
+  .btn { height:42px; padding:0 18px; border-radius:11px; background:var(--accent); color:var(--ground); font-weight:600; display:inline-flex; align-items:center; gap:8px; border:0; font-size:14px; text-decoration:none; }
+  .btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn.ghost:hover { border-color:var(--accent); color:var(--accent); }
+  .btn.small { height:36px; padding:0 12px; font-size:13px; }
+  .btn.danger:hover { border-color:var(--bad); color:var(--bad); }
+
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .tabs { display:flex; gap:4px; background:var(--surface); padding:4px; border-radius:12px; }
+  .tabs button { border:0; background:transparent; color:var(--muted); padding:8px 14px; border-radius:9px; font-size:14px; }
+  .tabs button.on { background:var(--chip); color:var(--ink); font-weight:600; }
+  .tabs button em { font-style:normal; color:var(--accent); font-size:12px; margin-left:4px; }
+  .search { flex:1 1 180px; height:42px; border-radius:11px; border:1px solid transparent; background:var(--surface); padding:0 14px; outline:none; }
+  .search:focus { border-color:var(--line); }
+
+  .list { display:flex; flex-direction:column; gap:8px; }
+  .day { color:var(--muted); font-size:12px; font-weight:600; margin:10px 0 2px; text-transform:none; }
+  .row { display:flex; align-items:center; gap:14px; background:var(--surface); border-radius:12px; padding:12px 14px; flex-wrap:wrap; animation: in .25s ease; }
+  @keyframes in { from { opacity:0; transform:translateY(4px); } }
+  .ico { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; flex:none; overflow:hidden; background-size:cover; background-position:center; }
+  .info { flex:1 1 200px; display:flex; flex-direction:column; gap:3px; min-width:0; }
   .name { font-size:15px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .meta { font-size:13px; color:var(--muted); }
-  .meta.in { color:var(--good); }
-  a.dl { height:40px; padding:0 16px; border-radius:10px; border:1px solid var(--line); display:flex; align-items:center; text-decoration:none; color:var(--ink); font-size:14px; font-weight:500; }
-  a.dl:hover { border-color:var(--accent); color:var(--accent); }
-  .bar { height:6px; border-radius:3px; background:var(--chip); flex-basis:100%; overflow:hidden; }
-  .bar > i { display:block; height:100%; width:0; background:var(--accent); transition:width .15s; }
-  .empty { color:var(--muted); font-size:14px; }
+  .meta { font-size:12.5px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; }
+  .in { color:var(--good); } .out { color:var(--blue); }
+  .actions { display:flex; gap:6px; }
+  .empty { color:var(--muted); font-size:14px; padding:12px 0; }
+
+  /* Havalı ilerleme çubuğu: akan şeritler + gezen parıltı */
+  .bar { position:relative; height:10px; border-radius:5px; background:var(--chip); flex-basis:100%; overflow:hidden; }
+  .bar > i { position:absolute; inset:0 auto 0 0; width:0; border-radius:5px; background:var(--c, var(--accent)); transition:width .25s ease; overflow:hidden;
+    background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.18) 0 7px, transparent 7px 14px); background-size: 20px 20px; animation: flow .9s linear infinite; }
+  .bar > i::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent); width:80px; animation: glow 1.6s ease-in-out infinite; }
+  .bar.done > i { animation:none; background-image:none; } .bar.done > i::after { display:none; }
+  @keyframes flow { to { background-position: 20px 0; } }
+  @keyframes glow { from { transform:translateX(-80px); } to { transform:translateX(900px); } }
+  .xfer { border:1px solid color-mix(in srgb, var(--c) 40%, transparent); }
+  .pct { font-weight:700; font-variant-numeric: tabular-nums; }
+
+  .note { background:var(--surface); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; animation: in .25s ease; }
+  .note pre { margin:0; white-space:pre-wrap; word-break:break-word; font:inherit; font-size:14px; max-height:180px; overflow:auto; }
+  .note .foot { display:flex; align-items:center; gap:6px; font-size:12px; }
+  .note .foot span { flex:1; }
+  textarea { width:100%; min-height:84px; resize:vertical; border-radius:12px; background:var(--surface); border:1px solid transparent; padding:12px 14px; outline:none; }
+  textarea:focus { border-color:var(--line); }
+
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:var(--chip); padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition: .2s; pointer-events:none; }
+  #toast.show { opacity:1; transform:translateX(-50%); }
+  dialog { background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:22px; max-width:420px; }
+  dialog::backdrop { background:rgba(0,0,0,.55); }
+  dialog p { color:var(--muted); margin:8px 0 18px; }
+  dialog .actions { justify-content:flex-end; flex-wrap:wrap; }
 </style>
 </head>
 <body>
 <main>
   <header>
     <h1>Köprü</h1>
-    <span id="status">● Telefona bağlı</span>
+    <span id="status" class="pill"><i></i><span>Bağlanıyor…</span></span>
   </header>
 
-  <label id="drop" for="pick">
-    <span class="big">Dosyaları buraya bırak</span>
-    <span class="small">ya da seçmek için tıkla — telefona gider (İndirilenler/Köprü)</span>
-    <input id="pick" type="file" multiple hidden>
-    <span class="btn">Dosya seç</span>
-  </label>
-
-  <section class="list" id="uploads" aria-live="polite"></section>
-
-  <section class="list">
-    <h2>Telefondaki dosyalar</h2>
-    <div class="list" id="files"><p class="empty">Yükleniyor…</p></div>
+  <section class="stats" aria-label="Özet">
+    <div class="stat"><small>Telefona giden</small><b class="in" id="sIn">0</b><span id="sInB">0 B</span></div>
+    <div class="stat"><small>Telefondan gelen</small><b class="out" id="sOut">0</b><span id="sOutB">0 B</span></div>
+    <div class="stat"><small>Notlar</small><b style="color:var(--accent)" id="sNotes">0</b><span>pano</span></div>
+    <div class="stat"><small>Bu oturumda</small><b id="sSess">0 B</b><span>aktarıldı</span></div>
   </section>
+
+  <div class="cols">
+    <div class="left">
+      <label id="drop" for="pick">
+        <span class="big">Dosyaları buraya bırak</span>
+        <span class="small">ya da tıkla · Ctrl+V ile yapıştır — telefonda İndirilenler/Köprü'ye gider</span>
+        <input id="pick" type="file" multiple hidden>
+        <span class="btn">Dosya seç</span>
+      </label>
+
+      <div class="list" id="xfers" aria-live="polite"></div>
+
+      <div class="toolbar">
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <input class="search" id="q" type="search" placeholder="Ara…" aria-label="Dosya ara">
+        <button class="btn ghost" id="dlAll" title="Görünen tüm dosyaları indir">Tümünü indir</button>
+      </div>
+      <div class="list" id="files"><p class="empty">Yükleniyor…</p></div>
+    </div>
+
+    <aside class="right">
+      <h2>Notlar / Pano</h2>
+      <textarea id="noteText" placeholder="Telefona metin, link, şifre… (Ctrl+Enter gönderir)"></textarea>
+      <div class="toolbar">
+        <button class="btn" id="noteSend">Telefona gönder</button>
+        <button class="btn ghost" id="notePaste">Panodan yapıştır</button>
+      </div>
+      <div class="list" id="notes"></div>
+    </aside>
+  </div>
 </main>
+
+<dialog id="dlg">
+  <h2 id="dlgTitle"></h2>
+  <p id="dlgText"></p>
+  <div class="actions" id="dlgActions"></div>
+</dialog>
+<div id="toast" role="status"></div>
+
 <script>
 const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt = (b) => b < 0 ? '?' : b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(0) + ' KB'
-  : b < 1073741824 ? (b/1048576).toFixed(1) + ' MB' : (b/1073741824).toFixed(2) + ' GB';
-const ext = (n) => (n.includes('.') ? n.split('.').pop() : '').slice(0, 4).toUpperCase();
-const esc = (s) => s.replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  : b < 1073741824 ? (b/1048576).toFixed(1).replace('.', ',') + ' MB' : (b/1073741824).toFixed(2).replace('.', ',') + ' GB';
+const eta = (s) => !isFinite(s) || s < 0 ? 'hesaplanıyor' : s < 60 ? Math.ceil(s) + ' sn kaldı'
+  : s < 3600 ? Math.floor(s/60) + ' dk ' + Math.floor(s%60) + ' sn kaldı' : Math.floor(s/3600) + ' sa ' + Math.floor(s%3600/60) + ' dk kaldı';
+const clock = (t) => new Date(t).toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' });
+function day(t) {
+  const d = new Date(t), now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+  const same = (a, b) => a.toDateString() === b.toDateString();
+  if (same(d, now)) return 'Bugün';
+  if (same(d, y)) return 'Dün';
+  return d.toLocaleDateString('tr-TR', { day:'numeric', month:'long', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric', weekday:'long' });
+}
+const KINDS = [
+  [/^(jpe?g|png|gif|webp|heic|bmp|svg)$/, 'RESİM', '#E7A6FF'], [/^(mp4|mkv|mov|avi|webm|3gp)$/, 'VİDEO', '#FF9E7A'],
+  [/^(mp3|wav|flac|m4a|ogg|aac)$/, 'SES', '#7AE0FF'], [/^pdf$/, 'PDF', '#FF7A8A'], [/^(zip|rar|7z|tar|gz)$/, 'ARŞİV', '#F2B33D'],
+  [/^apk$/, 'APK', '#8EE6A8'], [/^(docx?|txt|md|odt|rtf)$/, 'BELGE', '#7AB8FF'], [/^(xlsx?|csv)$/, 'TABLO', '#8EE6A8'],
+];
+function kind(name) {
+  const e = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+  for (const [re, label, color] of KINDS) if (re.test(e)) return { label, color, img: label === 'RESİM' };
+  return { label: (e || 'dosya').slice(0, 5).toUpperCase(), color: '#A0A6B0', img: false };
+}
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 1800); }
+function ask(title, text, buttons) {
+  return new Promise((done) => {
+    const d = $('#dlg'); $('#dlgTitle').textContent = title; $('#dlgText').textContent = text;
+    const box = $('#dlgActions'); box.innerHTML = '';
+    for (const [label, value, cls] of buttons) {
+      const b = document.createElement('button'); b.className = 'btn small ' + (cls || 'ghost'); b.textContent = label;
+      b.onclick = () => { d.close(); done(value); }; box.append(b);
+    }
+    d.onclose = () => done(null); d.showModal();
+  });
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); }
+  toast('Kopyalandı');
+}
 
-let last = '';
-async function refresh() {
-  try {
-    const r = await fetch('/api/list', { cache: 'no-store' });
-    const list = await r.json();
-    $('#status').textContent = '● Telefona bağlı'; $('#status').className = '';
-    const key = JSON.stringify(list);
-    if (key === last) return;
-    last = key;
-    $('#files').innerHTML = list.length ? list.map((f) => `
-      <div class="row">
-        <span class="ext">${esc(ext(f.name))}</span>
-        <div class="info"><span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
-          <span class="meta ${f.in ? 'in' : ''}">${f.in ? '↑ bilgisayardan geldi' : '↓ telefondan paylaşıldı'} · ${fmt(f.size)}</span></div>
-        <a class="dl" href="/dl/${encodeURIComponent(f.id)}" download>İndir</a>
-      </div>`).join('') : '<p class="empty">Telefonda paylaşılan dosya yok. Telefonda “Bilgisayara dosya gönder”e dokun.</p>';
-  } catch (e) {
-    $('#status').textContent = '● Telefon bağlantısı yok'; $('#status').className = 'off';
+let state = { items: [], notes: [], transfers: [] }, tab = 'all', sessionBytes = 0;
+const TABS = [['all', 'Tümü'], ['in', 'Telefona giden'], ['out', 'Telefondan']];
+
+function renderTabs() {
+  const n = { all: state.items.length, in: state.items.filter((f) => f.in).length, out: state.items.filter((f) => !f.in).length };
+  $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" class="${k === tab ? 'on' : ''}" data-tab="${k}">${l}<em>${n[k]}</em></button>`).join('');
+}
+$('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { tab = b.dataset.tab; render(); } });
+$('#q').addEventListener('input', render);
+
+function visible() {
+  const q = $('#q').value.trim().toLowerCase();
+  return state.items.filter((f) => (tab === 'all' || (tab === 'in') === f.in) && (!q || f.name.toLowerCase().includes(q)));
+}
+
+function render() {
+  renderTabs();
+  const ins = state.items.filter((f) => f.in), outs = state.items.filter((f) => !f.in);
+  const sum = (a) => a.reduce((s, f) => s + Math.max(0, f.size), 0);
+  $('#sIn').textContent = ins.length; $('#sInB').textContent = fmt(sum(ins));
+  $('#sOut').textContent = outs.length; $('#sOutB').textContent = fmt(sum(outs));
+  $('#sNotes').textContent = state.notes.length; $('#sSess').textContent = fmt(sessionBytes);
+
+  const list = visible();
+  let html = '', lastDay = '';
+  for (const f of list) {
+    const d = day(f.t);
+    if (d !== lastDay) { html += `<div class="day">${esc(d)}</div>`; lastDay = d; }
+    const k = kind(f.name);
+    const thumb = k.img && f.size < 15e6 ? `style="background-image:url('/dl/${encodeURIComponent(f.id)}?inline=1');background-color:${k.color}22"` : `style="background:${k.color}22;color:${k.color}"`;
+    html += `<div class="row">
+      <span class="ico" ${thumb}>${k.img && f.size < 15e6 ? '' : esc(k.label)}</span>
+      <div class="info"><span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
+        <span class="meta"><span class="${f.in ? 'in' : 'out'}">${f.in ? '↑ telefona gönderildi' : '↓ telefondan paylaşıldı'}</span>
+          <span>${clock(f.t)}</span><span>${fmt(f.size)}</span>${f.dl ? `<span>${f.dl}× indirildi</span>` : ''}</span></div>
+      <div class="actions">
+        ${k.img || /^(VİDEO|SES|PDF)$/.test(k.label) ? `<a class="btn ghost small" href="/dl/${encodeURIComponent(f.id)}?inline=1" target="_blank" rel="noopener">Önizle</a>` : ''}
+        <a class="btn ghost small" href="/dl/${encodeURIComponent(f.id)}" download>İndir</a>
+        <button class="btn ghost small danger" data-del="${esc(f.id)}" aria-label="${esc(f.name)} sil">Sil</button>
+      </div></div>`;
+  }
+  $('#files').innerHTML = html || `<p class="empty">${$('#q').value ? 'Eşleşen dosya yok.' : 'Henüz dosya yok. Telefonda “Dosya gönder”e dokun ya da buraya dosya bırak.'}</p>`;
+
+  $('#notes').innerHTML = state.notes.map((n) => `<div class="note">
+      <pre>${esc(n.text)}</pre>
+      <div class="foot"><span class="${n.pc ? 'in' : 'out'}">${n.pc ? 'Bilgisayardan' : 'Telefondan'} · ${esc(day(n.t))} ${clock(n.t)}</span>
+        <button class="btn ghost small" data-copy="${esc(n.id)}">Kopyala</button>
+        <button class="btn ghost small danger" data-ndel="${esc(n.id)}" aria-label="Notu sil">Sil</button></div></div>`).join('')
+    || '<p class="empty">Not yok. Telefona hızlıca metin/link atmak için yukarıya yaz.</p>';
+
+  renderPhoneTransfers();
+}
+
+// Telefon tarafındaki aktarımlar (bilgisayarın indirdikleri) — telefondan gelen veriyle.
+function renderPhoneTransfers() {
+  const box = $('#xfers');
+  box.querySelectorAll('.phone').forEach((e) => e.remove());
+  for (const t of state.transfers.filter((t) => !t.in)) {
+    const p = t.total > 0 ? t.done / t.total : 0;
+    const el = document.createElement('div');
+    el.className = 'row xfer phone'; el.style.setProperty('--c', 'var(--blue)');
+    el.innerHTML = `<div class="info"><span class="name">${esc(t.name)}</span>
+      <span class="meta"><span class="out">↓ telefondan indiriliyor</span><span>${fmt(t.done)} / ${fmt(t.total)}</span><span>${fmt(t.speed)}/sn</span><span>${eta((t.total - t.done) / t.speed)}</span></span></div>
+      <span class="pct">%${Math.floor(p * 100)}</span><div class="bar"><i style="width:${(p*100).toFixed(1)}%"></i></div>`;
+    box.append(el);
   }
 }
 
-// Sırayla yükle: aynı anda tek akış telefonu yormaz.
+document.addEventListener('click', async (e) => {
+  const del = e.target.closest('[data-del]'), cp = e.target.closest('[data-copy]'), nd = e.target.closest('[data-ndel]');
+  if (del) {
+    const f = state.items.find((x) => x.id === del.dataset.del); if (!f) return;
+    const choice = await ask('“' + f.name + '” silinsin mi?',
+      f.in ? 'Yalnızca listeden kaldırabilir ya da telefondaki dosyayı da silebilirsin.' : 'Telefondaki asıl dosyaya dokunulmaz, yalnızca paylaşım listesinden kalkar.',
+      f.in ? [['Vazgeç', null], ['Listeden kaldır', '0'], ['Telefondan da sil', '1', 'danger']] : [['Vazgeç', null], ['Listeden kaldır', '0', '']]);
+    if (choice == null) return;
+    await fetch('/api/item/' + encodeURIComponent(f.id) + (choice === '1' ? '?disk=1' : ''), { method: 'DELETE' });
+    toast(choice === '1' ? 'Telefondan silindi' : 'Listeden kaldırıldı'); refresh();
+  }
+  if (cp) { const n = state.notes.find((x) => x.id === cp.dataset.copy); if (n) copy(n.text); }
+  if (nd) { await fetch('/api/note/' + encodeURIComponent(nd.dataset.ndel), { method: 'DELETE' }); refresh(); }
+});
+
+$('#dlAll').addEventListener('click', async () => {
+  const list = visible(); if (!list.length) return toast('İndirilecek dosya yok');
+  toast(list.length + ' dosya indiriliyor');
+  for (const f of list) {
+    const a = document.createElement('a'); a.href = '/dl/' + encodeURIComponent(f.id); a.download = f.name; document.body.append(a); a.click(); a.remove();
+    await new Promise((r) => setTimeout(r, 700));
+  }
+});
+
+async function sendNote() {
+  const text = $('#noteText').value; if (!text.trim()) return;
+  const r = await fetch('/api/note', { method: 'POST', body: new Blob([text], { type: 'text/plain' }) });
+  if (r.ok) { $('#noteText').value = ''; toast('Telefona gönderildi'); refresh(); } else toast('Gönderilemedi');
+}
+$('#noteSend').addEventListener('click', sendNote);
+$('#noteText').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.ctrlKey) sendNote(); });
+$('#notePaste').addEventListener('click', async () => {
+  try { $('#noteText').value = await navigator.clipboard.readText(); $('#noteText').focus(); }
+  catch { toast('Pano okunamadı — Ctrl+V ile yapıştır'); $('#noteText').focus(); }
+});
+
+let lastKey = '';
+async function refresh() {
+  try {
+    const r = await fetch('/api/state', { cache: 'no-store' });
+    const s = await r.json();
+    $('#status').className = 'pill'; $('#status span').textContent = (s.device || 'Telefon') + ' bağlı';
+    const key = JSON.stringify(s);
+    if (key === lastKey) return;
+    lastKey = key; state = s; render();
+  } catch {
+    $('#status').className = 'pill off'; $('#status span').textContent = 'Telefona ulaşılamıyor';
+  }
+}
+
+// Yüklemeler sırayla gider; her biri iptal edilebilir.
 let queue = Promise.resolve();
 function upload(files) {
   for (const file of files) {
     const row = document.createElement('div');
-    row.className = 'row';
-    row.innerHTML = `<span class="ext">${esc(ext(file.name))}</span>
-      <div class="info"><span class="name">${esc(file.name)}</span><span class="meta">Sırada · ${fmt(file.size)}</span></div>
-      <div class="bar"><i></i></div>`;
-    $('#uploads').prepend(row);
-    const meta = row.querySelector('.meta'), bar = row.querySelector('.bar > i');
-    queue = queue.then(() => new Promise((done) => {
-      const xhr = new XMLHttpRequest();
+    row.className = 'row xfer'; row.style.setProperty('--c', 'var(--accent)');
+    row.innerHTML = `<div class="info"><span class="name">${esc(file.name)}</span><span class="meta"><span>Sırada · ${fmt(file.size)}</span></span></div>
+      <span class="pct">%0</span><button class="btn ghost small danger">İptal</button><div class="bar"><i></i></div>`;
+    $('#xfers').prepend(row);
+    const meta = row.querySelector('.meta'), bar = row.querySelector('.bar > i'), pct = row.querySelector('.pct'), cancel = row.querySelector('button');
+    let xhr = null, cancelled = false;
+    const finish = (msg, cls, ok) => {
+      meta.innerHTML = `<span class="${cls}">${msg}</span><span>${fmt(file.size)}</span><span>${clock(Date.now())}</span>`;
+      row.querySelector('.bar').classList.add('done'); cancel.remove();
+      if (ok) { bar.style.width = '100%'; pct.textContent = '✓'; row.style.setProperty('--c', 'var(--good)'); }
+      setTimeout(() => { row.style.transition = 'opacity .4s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 400); }, ok ? 4000 : 8000);
+    };
+    cancel.onclick = () => { cancelled = true; if (xhr) xhr.abort(); else finish('İptal edildi', '', false); };
+    queue = queue.then(() => cancelled ? null : new Promise((done) => {
+      const start = performance.now();
+      xhr = new XMLHttpRequest();
       xhr.open('PUT', '/up?name=' + encodeURIComponent(file.name));
+      let prev = 0;
       xhr.upload.onprogress = (e) => {
         const p = e.lengthComputable ? e.loaded / e.total : 0;
-        bar.style.width = (p * 100).toFixed(1) + '%';
-        meta.textContent = `Gönderiliyor %${(p * 100).toFixed(0)} · ${fmt(file.size)}`;
+        sessionBytes += e.loaded - prev; prev = e.loaded;
+        const speed = e.loaded / Math.max(0.2, (performance.now() - start) / 1000);
+        bar.style.width = (p * 100).toFixed(1) + '%'; pct.textContent = '%' + Math.floor(p * 100);
+        meta.innerHTML = `<span class="in">↑ telefona gidiyor</span><span>${fmt(e.loaded)} / ${fmt(file.size)}</span><span>${fmt(speed)}/sn</span><span>${eta((file.size - e.loaded) / speed)}</span>`;
       };
-      xhr.onload = () => {
-        const ok = xhr.status === 200;
-        meta.textContent = ok ? `✓ Telefona gönderildi · ${fmt(file.size)}` : 'Hata: ' + xhr.status;
-        meta.className = 'meta ' + (ok ? 'in' : '');
-        bar.style.width = '100%';
-        refresh(); done();
-      };
-      xhr.onerror = () => { meta.textContent = 'Bağlantı hatası'; done(); };
+      xhr.onload = () => { const ok = xhr.status === 200; finish(ok ? '✓ Telefona ulaştı' : 'Hata: ' + xhr.status, ok ? 'in' : '', ok); refresh(); done(); };
+      xhr.onerror = () => { finish('Bağlantı hatası', '', false); done(); };
+      xhr.onabort = () => { finish('İptal edildi', '', false); done(); };
       xhr.send(file);
     }));
   }
 }
 
-$('#pick').addEventListener('change', (e) => { upload(e.target.files); e.target.value = ''; });
+$('#pick').addEventListener('change', (e) => { upload([...e.target.files]); e.target.value = ''; });
 const drop = $('#drop');
-['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
-['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
-// Bırakma tüm sayfada çalışır (alanın 'drop' olayı da buraya kabarır).
-window.addEventListener('dragover', (e) => e.preventDefault());
-window.addEventListener('drop', (e) => { e.preventDefault(); upload(e.dataTransfer.files); });
+['dragenter', 'dragover'].forEach((t) => window.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((t) => window.addEventListener(t, (e) => { e.preventDefault(); if (t === 'drop' || !e.relatedTarget) drop.classList.remove('over'); }));
+window.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) upload([...e.dataTransfer.files]); });
+// Ctrl+V: panodaki dosya/ekran görüntüsü telefona gider (not kutusunda değilken).
+window.addEventListener('paste', (e) => {
+  if (e.target === $('#noteText') || e.target === $('#q')) return;
+  const files = [...e.clipboardData.files];
+  if (files.length) { e.preventDefault(); upload(files.map((f, i) => f.name === 'image.png' ? new File([f], `ekran_${Date.now()}_${i}.png`, { type: f.type }) : f)); }
+  else { const t = e.clipboardData.getData('text'); if (t) { $('#noteText').value = t; toast('Metin not kutusuna alındı'); } }
+});
 
 refresh();
-setInterval(refresh, 3000);
+setInterval(refresh, 1000);
 </script>
 </body>
 </html>
